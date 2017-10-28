@@ -1,4 +1,3 @@
-from github3 import login, search_issues
 import click
 import requests
 import datetime
@@ -7,10 +6,6 @@ CREDENTIALS_FILE=".token"
 
 # Automated description on milestones created with this tool.
 AUTOMATED_DESCRIPTION = 'Automatically created by Amanuensis.'
-
-repos_to_scan = (
-	('stratasan', 'health'),
-)
 
 
 def get_github_token():

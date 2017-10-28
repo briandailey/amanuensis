@@ -1,6 +1,6 @@
 This assumes that you have a cadence that you want to build velocity charts for.
-
-The default cadence is one week (7 days).
+You probably want to get all closed issues and put them in a milestone for a particular
+sprint. This script automates that for you.
 
 Given a date, which you provide as an option, we will find all issues that were
 closed in the past N days (default: 7) and add them to a milestone that is named

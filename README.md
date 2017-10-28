@@ -22,14 +22,18 @@ of 100 results and will therefore not be returned in the search and moved.
 
 Python3 only. You probably want to use virtualenv, etc.
 
+```
   $ git clone git@github.com:briandailey/amanuensis.git
   $ cd amanuensis
   $ pip install -r requirements.txt
+```
 
 ### Example Usage
 
+```
   $ python main.py --repo briandailey/amanuensis --date 2017-10-27
   Using Milestone 127: 2017-10-20 - 2017-10-27
   Found 66 matching issues. Pairing down.
   Found 29 issues closed between 2017-10-20 and 2017-10-27.
   4685 - Lorem ipsum dolor sit - https://github.com/briandailey/amanuensis/issues/4685
+```

@@ -1,0 +1,4 @@
+.token
+*.pyc
+*.swp
+__pycache__

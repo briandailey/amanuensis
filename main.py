@@ -59,7 +59,6 @@ def get_milestone(org, repo_name, start_date, end_date):
     # end up with due_on being 07:00:00 the day prior. So look for that!
     due_on = (datetime.datetime.strptime(end_date, '%Y-%m-%d') - datetime.timedelta(days=1)).strftime('%Y-%m-%d') + 'T07:00:00Z'
 
-    milestones = r.json()
     for milestone in r.json():
         if milestone['due_on'] == due_on and \
             milestone['title'] == automated_title and \
@@ -89,13 +88,13 @@ def create_milestone(org, repo_name, start_date, end_date):
 
     return r.json()
 
+
 def set_issue_milestone(org, repo_name, issue_number, milestone_number):
     url = 'https://api.github.com/repos/{}/{}/issues/{}'.format(org, repo_name, issue_number)
     headers = {'Authorization':'token %s' % get_github_token()}
     data = {'milestone': milestone_number}
 
-    r = requests.patch(url, json=data, headers=headers)
-
+    requests.patch(url, json=data, headers=headers)
 
 
 @click.command()

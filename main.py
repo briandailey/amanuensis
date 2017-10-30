@@ -2,7 +2,11 @@ import click
 import requests
 import datetime
 
-CREDENTIALS_FILE=".token"
+GITHUB_API_ROOT = 'https://api.github.com'
+CREDENTIALS_FILE = ".token"
+
+ZENHUB_CREDENTIALS_FILE = ".zenhubtoken"
+ZENHUB_API_ROOT = 'https://api.zenhub.io'
 
 # Automated description on milestones created with this tool.
 AUTOMATED_DESCRIPTION = 'Automatically created by Amanuensis.'
@@ -15,11 +19,18 @@ def get_github_token():
     return token
 
 
+def get_zenhub_token():
+    token = ''
+    with open(ZENHUB_CREDENTIALS_FILE, 'r') as fd:
+        token = fd.readline().strip()  # Can't hurt to be paranoid
+    return token
+
+
 def get_closed_issues(org, repo_name, start_date, end_date):
     """ Return all issues from org/repo_name closed between start and end. """
 
     # There's no easy way to get this (like the search query syntax) for private repos.
-    url = 'https://api.github.com/repos/{}/{}/issues'.format(org, repo_name)
+    url = '{}/repos/{}/{}/issues'.format(GITHUB_API_ROOT, org, repo_name)
     params = {'since': start_date + 'T00:00:00Z', 'state': 'closed', 'sort': 'updated', 'direction': 'asc', 'per_page': 100}
     headers = {'Authorization':'token %s' % get_github_token()}
 
@@ -49,7 +60,7 @@ def get_milestone(org, repo_name, start_date, end_date):
     matching_milestone = None
     automated_title = '{} - {}'.format(start_date, end_date)
 
-    url = 'https://api.github.com/repos/{}/{}/milestones'.format(org, repo_name)
+    url = '{}/repos/{}/{}/milestones'.format(GITHUB_API_ROOT, org, repo_name)
     params = {'state': 'open', 'sort': 'due_on', 'direction': 'desc'}
     headers = {'Authorization':'token %s' % get_github_token()}
 
@@ -75,7 +86,7 @@ def get_or_create_milestone(org, repo_name, start_date, end_date):
     return milestone
 
 def create_milestone(org, repo_name, start_date, end_date):
-    url = 'https://api.github.com/repos/{}/{}/milestones'.format(org, repo_name)
+    url = '{}/repos/{}/{}/milestones'.format(GITHUB_API_ROOT, org, repo_name)
     data = {
         'title': '{} - {}'.format(start_date, end_date),
         'state': 'open',
@@ -90,21 +101,42 @@ def create_milestone(org, repo_name, start_date, end_date):
 
 
 def set_issue_milestone(org, repo_name, issue_number, milestone_number):
-    url = 'https://api.github.com/repos/{}/{}/issues/{}'.format(org, repo_name, issue_number)
+    url = '{}/repos/{}/{}/issues/{}'.format(GITHUB_API_ROOT, org, repo_name, issue_number)
     headers = {'Authorization':'token %s' % get_github_token()}
     data = {'milestone': milestone_number}
 
     requests.patch(url, json=data, headers=headers)
 
 
-@click.command()
-@click.option('--repo', '-r', required=True, multiple=True, help="org/repo, can provide > 1")
-@click.option('--days', '-d', default=7, help="Days per sprint/cadence.")
-@click.option('--date', help="Ending date for sprint (YYYY-MM-DD).", required=True)
-@click.option('--token', '-t', help="Your GitHub token (optional, can place in .token file).")
-@click.option('--force', '-f', is_flag=True, help="Even if the issues are attached to another milestone, move them.")
-def run(days, repo, token, date, force):
+def set_milestone_start_date(org, repo_name, milestone_number, start_date):
+    """ Set the milestone start date on the ZenHub side. """
 
+    try:
+        zenhub_token = get_zenhub_token()
+    except FileNotFoundError:
+        print("No ZenHub token found, not setting milestone start date.")
+        return
+
+    # First, we have to get the repo id.
+    url = '{}/repos/{}/{}'.format(GITHUB_API_ROOT, org, repo_name)
+    headers = {'Authorization':'token %s' % get_github_token()}
+
+    r = requests.get(url, headers=headers)
+
+    repo_id = r.json()['id']
+
+    url = '{zenhub_api_root}/p1/repositories/{repo_id}/milestones/{milestone_number}/start_date'.format(
+        zenhub_api_root=ZENHUB_API_ROOT,
+        repo_id=repo_id,
+        milestone_number=milestone_number)
+    headers = {'X-Authentication-Token': zenhub_token}
+    # Gotta add the time offset.
+    data = {'start_date': start_date + 'T07:00:00Z'}
+    r = requests.post(url, data=data, headers=headers)
+    return r
+
+
+def run(days, repo, token, date, force):
     # Get start and end date.
     end_date = datetime.datetime.strptime(date, '%Y-%m-%d')
     start_date = end_date - datetime.timedelta(days=days)
@@ -116,6 +148,7 @@ def run(days, repo, token, date, force):
     for org_repo in repo:
         org, repo_name = org_repo.split('/')
         milestone = get_or_create_milestone(org, repo_name, start_date, end_date)
+        set_milestone_start_date(org, repo_name, milestone['number'], start_date)
         print("Using Milestone {}: {}".format(milestone['number'], milestone['title']))
         closed_issues = get_closed_issues(org, repo_name, start_date, end_date)
         print("Found {} issues closed between {} and {}.".format(len(closed_issues), start_date, end_date))
@@ -129,5 +162,16 @@ def run(days, repo, token, date, force):
                 set_issue_milestone(org, repo_name, issue['number'], milestone['number'])
 
 
+
+@click.command()
+@click.option('--repo', '-r', required=True, multiple=True, help="org/repo, can provide > 1")
+@click.option('--days', '-d', default=7, help="Days per sprint/cadence.")
+@click.option('--date', help="Ending date for sprint (YYYY-MM-DD).", required=True)
+@click.option('--token', '-t', help="Your GitHub token (optional, can place in .token file).")
+@click.option('--force', '-f', is_flag=True, help="Even if the issues are attached to another milestone, move them.")
+def cli(days, repo, token, date, force):
+    run(days, repo, token, date, force)
+
+
 if __name__ == '__main__':
-    run()
+    cli()

@@ -55,7 +55,7 @@ class Amanuensis(object):
                 print("#{} was already in milestone.".format(issue['number']))
             elif not issue['milestone'] or self.force_milestone_association:
                 print("#{} - {} - {}".format(issue['number'], issue['title'], issue['html_url']))
-                self.set_issue_milestone(issue['number'], self.milestone['number'])
+                self.set_issue_milestone(self.milestone['number'], issue['number'])
             else:
                 print("#{} is assigned to another milestone ({}).".format(issue['number'], issue['milestone']['number']))
 

@@ -133,8 +133,8 @@ class Amanuensis(object):
         r = requests.get(url, params=params, headers=self.github_headers)
 
         # Note that if you set due_on to YYYY-MM-DDT00:00:00 you will actually
-        # end up with due_on being 07:00:00 the day prior. So look for that!
-        due_on = (datetime.datetime.strptime(self.end_date, '%Y-%m-%d') - datetime.timedelta(days=1)).strftime('%Y-%m-%d') + 'T07:00:00Z'
+        # end up with due_on being 08:00:00 the day prior. So look for that!
+        due_on = (datetime.datetime.strptime(self.end_date, '%Y-%m-%d') - datetime.timedelta(days=1)).strftime('%Y-%m-%d') + 'T08:00:00Z'
 
         for milestone in r.json():
             if milestone['due_on'] == due_on and \
@@ -187,7 +187,7 @@ class Amanuensis(object):
             repo_id=self.repo_id,
             milestone_number=self.milestone_number)
         # Gotta add the time offset.
-        data = {'start_date': self.start_date + 'T07:00:00Z'}
+        data = {'start_date': self.start_date + 'T08:00:00Z'}
         if not self.dry_run:
             r = requests.post(url, data=data, headers=self.zenhub_headers)
             return r

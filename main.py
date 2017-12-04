@@ -50,6 +50,12 @@ class Amanuensis(object):
         self.closed_issues = self.get_closed_issues()
         print("Found {} issues closed between {} and {}.".format(len(self.closed_issues), self.start_date, self.end_date))
         for issue in self.closed_issues:
+            zenhub_issue_data = self.get_issue_zenhub_data(issue['number'])
+            if 'estimate' in zenhub_issue_data and zenhub_issue_data['estimate']['value'] == 0:
+                # We like to know our average points per issue so don't include 0-point issues
+                # in our milestones.
+                print("#{} has 0 points, not modifying.".format(issue['number'])
+                continue
             if issue['milestone'] and issue['milestone']['number'] == self.milestone_number:
                 # already in this milestone.
                 print("#{} was already in milestone.".format(issue['number']))
@@ -59,7 +65,6 @@ class Amanuensis(object):
             else:
                 print("#{} is assigned to another milestone ({}).".format(issue['number'], issue['milestone']['number']))
 
-            zenhub_issue_data = self.get_issue_zenhub_data(issue['number'])
             if not 'estimate' in zenhub_issue_data:
                 print("Warning: Issue #{} has no points estimate!".format(issue['number']))
             else:

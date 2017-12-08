@@ -54,7 +54,7 @@ class Amanuensis(object):
             if 'estimate' in zenhub_issue_data and zenhub_issue_data['estimate']['value'] == 0:
                 # We like to know our average points per issue so don't include 0-point issues
                 # in our milestones.
-                print("#{} has 0 points, not modifying.".format(issue['number'])
+                print("#{} has 0 points, not modifying.".format(issue['number']))
                 continue
             if issue['milestone'] and issue['milestone']['number'] == self.milestone_number:
                 # already in this milestone.

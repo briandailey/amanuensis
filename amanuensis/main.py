@@ -37,6 +37,7 @@ class Amanuensis(object):
             self._zenhub_token = zenhub_token
 
         self.closed_issues = self.get_closed_issues()
+
     def __call__(self):
         # Get the milestone for this.
         self.milestone = self.get_or_create_milestone()

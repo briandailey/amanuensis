@@ -25,13 +25,13 @@ Python3 only. You probably want to use virtualenv, etc.
 ```
   $ git clone git@github.com:briandailey/amanuensis.git
   $ cd amanuensis
-  $ pip install -r requirements.txt
+  $ pip install -e .
 ```
 
 ### Example Usage
 
 ```
-  $ python main.py --repo briandailey/amanuensis --date 2017-10-27
+  $ amanuensis --repo briandailey/amanuensis --date 2017-10-27
   Using Milestone 127: 2017-10-20 - 2017-10-27
   Found 66 matching issues. Pairing down.
   Found 29 issues closed between 2017-10-20 and 2017-10-27.

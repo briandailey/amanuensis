@@ -23,9 +23,7 @@ of 100 results and will therefore not be returned in the search and moved.
 Python3 only. You probably want to use virtualenv, etc.
 
 ```
-  $ git clone git@github.com:briandailey/amanuensis.git
-  $ cd amanuensis
-  $ pip install -e .
+  $ pip install https://github.com/briandailey/amanuensis/archive/master.zip
 ```
 
 ### Example Usage

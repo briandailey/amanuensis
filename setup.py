@@ -7,7 +7,7 @@ setup(name='amanuensis',
       author='Brian Dailey',
       author_email='github@dailytechnology.net',
       license='MIT',
-      packages=['amanuensis'],
+      packages=['.'],
       install_requires=[
           'requests==2.18.4',
           'click==6.7',

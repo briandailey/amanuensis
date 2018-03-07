@@ -23,6 +23,7 @@ class Amanuensis(object):
             dry_run=False,
             github_token=None,
             zenhub_token=None,
+            logger_method=None,
             *args, **kwargs):
         org, repo_name = org_slash_repo_name.split('/')
         self.org = org
@@ -36,6 +37,10 @@ class Amanuensis(object):
         if zenhub_token:
             self._zenhub_token = zenhub_token
 
+        self.logger_method = logger_method
+        if not logger_method:
+            logger_method = print
+
         self.closed_issues = self.get_closed_issues()
 
     def __call__(self):
@@ -46,32 +51,32 @@ class Amanuensis(object):
 
         # Set the milestone start date on the ZenHub side.
         self.set_milestone_start_date()
-        print("Using Milestone {}: {}".format(self.milestone['number'], self.milestone['title']))
+        self.logger_method("Using Milestone {}: {}".format(self.milestone['number'], self.milestone['title']))
 
         self.closed_issues = self.get_closed_issues()
-        print("Found {} issues closed between {} and {}.".format(len(self.closed_issues), self.start_date, self.end_date))
+        self.logger_method("Found {} issues closed between {} and {}.".format(len(self.closed_issues), self.start_date, self.end_date))
         for issue in self.closed_issues:
             zenhub_issue_data = self.get_issue_zenhub_data(issue['number'])
             if 'estimate' in zenhub_issue_data and zenhub_issue_data['estimate']['value'] == 0:
                 # We like to know our average points per issue so don't include 0-point issues
                 # in our milestones.
-                print("#{} has 0 points, not modifying.".format(issue['number']))
+                self.logger_method("#{} has 0 points, not modifying.".format(issue['number']))
                 continue
             if issue['milestone'] and issue['milestone']['number'] == self.milestone_number:
                 # already in this milestone.
-                print("#{} was already in milestone.".format(issue['number']))
+                self.logger_method("#{} was already in milestone.".format(issue['number']))
             elif not issue['milestone'] or self.force_milestone_association:
-                print("#{} - {} - {}".format(issue['number'], issue['title'], issue['html_url']))
+                self.logger_method("#{} - {} - {}".format(issue['number'], issue['title'], issue['html_url']))
                 self.set_issue_milestone(self.milestone['number'], issue['number'])
             else:
-                print("#{} is assigned to another milestone ({}).".format(issue['number'], issue['milestone']['number']))
+                self.logger_method("#{} is assigned to another milestone ({}).".format(issue['number'], issue['milestone']['number']))
 
             if not 'estimate' in zenhub_issue_data:
-                print("Warning: Issue #{} has no points estimate!".format(issue['number']))
+                self.logger_method("Warning: Issue #{} has no points estimate!".format(issue['number']))
             else:
                 total_points += zenhub_issue_data['estimate']['value']
 
-        print("Total points: {}".format(total_points))
+        self.logger_method("Total points: {}".format(total_points))
 
     @property
     def github_token(self):
@@ -103,7 +108,7 @@ class Amanuensis(object):
         end_date_ts = datetime.datetime.strptime(self.end_date, '%Y-%m-%d')
 
         issues_returned = r.json()
-        print("Found {} matching issues. Pairing down.".format(len(issues_returned)))
+        self.logger_method("Found {} matching issues. Pairing down.".format(len(issues_returned)))
         matching_issues = []
         for issue in issues_returned:
             if 'pull_request' in issue:
@@ -153,7 +158,7 @@ class Amanuensis(object):
     def get_or_create_milestone(self):
         milestone = self.get_milestone()
         if milestone:
-            print("Using milestone {}...".format(milestone['number']))
+            self.logger_method("Using milestone {}...".format(milestone['number']))
         else:
             milestone = self.create_milestone()
         return milestone
@@ -166,7 +171,7 @@ class Amanuensis(object):
             'description': AUTOMATED_DESCRIPTION,
             'due_on': self.end_date + 'T00:00:00Z',
         }
-        print("Creating a new milestone '{}'...".format(data['title']))
+        self.logger_method("Creating a new milestone '{}'...".format(data['title']))
 
         if not self.dry_run:
             r = requests.post(url, json=data, headers=self.github_headers)

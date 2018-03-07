@@ -15,6 +15,6 @@ setup(name='amanuensis',
       ],
       # scripts=['bin/amanuensis', ]
       entry_points={
-          'console_scripts': ['amanuensis=amanuensis.amanuensis:cli'],
+          'console_scripts': ['amanuensis=amanuensis:cli'],
       },
       zip_safe=False)

@@ -39,7 +39,7 @@ class Amanuensis(object):
 
         self.logger_method = logger_method
         if not logger_method:
-            logger_method = print
+            self.logger_method = print
 
         self.closed_issues = self.get_closed_issues()
 
@@ -60,19 +60,19 @@ class Amanuensis(object):
             if 'estimate' in zenhub_issue_data and zenhub_issue_data['estimate']['value'] == 0:
                 # We like to know our average points per issue so don't include 0-point issues
                 # in our milestones.
-                self.logger_method("#{} has 0 points, not modifying.".format(issue['number']))
+                self.logger_method("{}/{}#{} has 0 points, not modifying.".format(self.org, self.repo_name, issue['number']))
                 continue
             if issue['milestone'] and issue['milestone']['number'] == self.milestone_number:
                 # already in this milestone.
-                self.logger_method("#{} was already in milestone.".format(issue['number']))
+                self.logger_method("{}/{}#{} was already in milestone.".format(self.org, self.repo_name, issue['number']))
             elif not issue['milestone'] or self.force_milestone_association:
                 self.logger_method("#{} - {} - {}".format(issue['number'], issue['title'], issue['html_url']))
                 self.set_issue_milestone(self.milestone['number'], issue['number'])
             else:
-                self.logger_method("#{} is assigned to another milestone ({}).".format(issue['number'], issue['milestone']['number']))
+                self.logger_method("{}/{}#{} is assigned to another milestone ({}).".format(self.org, self.repo_name, issue['number'], issue['milestone']['number']))
 
             if not 'estimate' in zenhub_issue_data:
-                self.logger_method("Warning: Issue #{} has no points estimate!".format(issue['number']))
+                self.logger_method("Warning: Issue {}/{}#{} has no points estimate!".format(self.org, self.repo_name, issue['number']))
             else:
                 total_points += zenhub_issue_data['estimate']['value']
 
@@ -234,7 +234,6 @@ def cli(days, repo, token, zenhub_token, date, force, dry_run):
         exit(0)
 
     for org_repo in repo:
-        print("Working with {}".format(org_repo))
         amanuensis = Amanuensis(org_repo,
             force_milestone_association=force,
             start_date=start_date,

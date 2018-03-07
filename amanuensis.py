@@ -76,7 +76,7 @@ class Amanuensis(object):
             else:
                 total_points += zenhub_issue_data['estimate']['value']
 
-        self.logger_method("Total points: {}".format(total_points))
+        self.logger_method("Total points in {}/{}: {}".format(self.org, self.repo_name, total_points))
 
     @property
     def github_token(self):
@@ -108,7 +108,7 @@ class Amanuensis(object):
         end_date_ts = datetime.datetime.strptime(self.end_date, '%Y-%m-%d')
 
         issues_returned = r.json()
-        self.logger_method("Found {} matching issues. Pairing down.".format(len(issues_returned)))
+        self.logger_method("Found {} matching issues in {}/{}. Pairing down.".format(len(issues_returned), self.org, self.repo_name))
         matching_issues = []
         for issue in issues_returned:
             if 'pull_request' in issue:
@@ -171,7 +171,7 @@ class Amanuensis(object):
             'description': AUTOMATED_DESCRIPTION,
             'due_on': self.end_date + 'T00:00:00Z',
         }
-        self.logger_method("Creating a new milestone '{}'...".format(data['title']))
+        self.logger_method("Creating a new milestone in {}/{}: '{}'...".format(self.org, self.repo_name, data['title']))
 
         if not self.dry_run:
             r = requests.post(url, json=data, headers=self.github_headers)

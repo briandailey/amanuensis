@@ -148,7 +148,7 @@ class Amanuensis(object):
         due_on = (datetime.datetime.strptime(self.end_date, '%Y-%m-%d') - datetime.timedelta(days=1)).strftime('%Y-%m-%d') + 'T08:00:00Z'
 
         for milestone in r.json():
-            if milestone['due_on'] == due_on and \
+            if \
                 automated_title in milestone['title'] and \
                 milestone['description'] == AUTOMATED_DESCRIPTION:
                 matching_milestone = milestone

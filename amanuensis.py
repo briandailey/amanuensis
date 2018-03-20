@@ -51,7 +51,6 @@ class Amanuensis(object):
 
         # Set the milestone start date on the ZenHub side.
         self.set_milestone_start_date()
-        self.logger_method("Using Milestone {}: {}".format(self.milestone['number'], self.milestone['title']))
 
         self.closed_issues = self.get_closed_issues()
         self.logger_method("Found {} issues closed between {} and {}.".format(len(self.closed_issues), self.start_date, self.end_date))
@@ -158,7 +157,7 @@ class Amanuensis(object):
     def get_or_create_milestone(self):
         milestone = self.get_milestone()
         if milestone:
-            self.logger_method("Using milestone {}...".format(milestone['number']))
+            self.logger_method("Using Milestone {}: {}".format(milestone['number'], milestone['title']))
         else:
             milestone = self.create_milestone()
         return milestone

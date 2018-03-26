@@ -41,9 +41,15 @@ class Amanuensis(object):
         if not logger_method:
             self.logger_method = print
 
+    def __call__(self):
         self.closed_issues = self.get_closed_issues()
 
-    def __call__(self):
+        if len(self.closed_issues) == 0:
+            self.logger_method("No issues found between {} and {}, not creating milestone.".format(self.start_date, self.end_date))
+            return
+        else:
+            self.logger_method("Found {} issues closed between {} and {}.".format(len(self.closed_issues), self.start_date, self.end_date))
+
         # Get the milestone for this.
         self.milestone = self.get_or_create_milestone()
         self.milestone_number = self.milestone['number']
@@ -52,8 +58,6 @@ class Amanuensis(object):
         # Set the milestone start date on the ZenHub side.
         self.set_milestone_start_date()
 
-        self.closed_issues = self.get_closed_issues()
-        self.logger_method("Found {} issues closed between {} and {}.".format(len(self.closed_issues), self.start_date, self.end_date))
         for issue in self.closed_issues:
             zenhub_issue_data = self.get_issue_zenhub_data(issue['number'])
             if 'estimate' in zenhub_issue_data and zenhub_issue_data['estimate']['value'] == 0:

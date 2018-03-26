@@ -111,7 +111,6 @@ class Amanuensis(object):
         end_date_ts = datetime.datetime.strptime(self.end_date, '%Y-%m-%d')
 
         issues_returned = r.json()
-        self.logger_method("Found {} matching issues in {}/{}. Pairing down.".format(len(issues_returned), self.org, self.repo_name))
         matching_issues = []
         for issue in issues_returned:
             if 'pull_request' in issue:

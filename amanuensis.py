@@ -45,10 +45,10 @@ class Amanuensis(object):
         self.closed_issues = self.get_closed_issues()
 
         if len(self.closed_issues) == 0:
-            self.logger_method("No issues found between {} and {}, not creating milestone.".format(self.start_date, self.end_date))
+            self.logger_method("No issues in {} found between {} and {}, not creating milestone.".format(self.repo_name, self.start_date, self.end_date))
             return
         else:
-            self.logger_method("Found {} issues closed between {} and {}.".format(len(self.closed_issues), self.start_date, self.end_date))
+            self.logger_method("Found {} issues in {} closed between {} and {}.".format(len(self.closed_issues), self.repo_name, self.start_date, self.end_date))
 
         # Get the milestone for this.
         self.milestone = self.get_or_create_milestone()

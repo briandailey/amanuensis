@@ -17,8 +17,8 @@ class Amanuensis(object):
 
     def __init__(self,
             org_slash_repo_name,
-            start_date,
-            end_date,
+            start_date=None,
+            end_date=None,
             force_milestone_association=False,
             dry_run=False,
             github_token=None,
@@ -41,9 +41,9 @@ class Amanuensis(object):
         if not logger_method:
             self.logger_method = print
 
+    def rollup_milestones(self):
         self.closed_issues = self.get_closed_issues()
 
-    def __call__(self):
         # Get the milestone for this.
         self.milestone = self.get_or_create_milestone()
         self.milestone_number = self.milestone['number']
@@ -211,6 +211,48 @@ class Amanuensis(object):
         r = requests.get(url, headers=self.zenhub_headers)
         return r.json()
 
+    def get_github_issue_data(self, issue_number):
+        url = '{}/repos/{}/{}/issues/{}'.format(GITHUB_API_ROOT, self.org, self.repo_name, issue_number)
+        r = requests.get(url, headers=self.github_headers)
+        return r.json()
+
+    def get_zenhub_board_data(self):
+        url = '{zenhub_api_root}/p1/repositories/{repo_id}/board'.format(
+            zenhub_api_root=ZENHUB_API_ROOT,
+            repo_id=self.repo_id)
+        r = requests.get(url, headers=self.zenhub_headers)
+        return r.json()
+
+    def get_user_points(self, user_issues_points, pipeline_name):
+        """ Take the user_points dictionary, update with stats from this repo. """
+        board_data = self.get_zenhub_board_data()
+        issues = []
+        for pipeline in board_data.get('pipelines', []):
+            if pipeline['name'] == pipeline_name:
+                issues = pipeline['issues']
+
+        # for each issue, get the user assigned.
+        for issue in issues:
+            issue_data = self.get_github_issue_data(issue['issue_number'])
+
+            if 'estimate' not in issue:
+                self.logger_method("{}/{}#{} '{}' has no estimate.".format(self.org, self.repo_name, issue['issue_number'], issue_data['title']))
+                continue
+
+            if not issue_data['assignees']:
+                self.logger_method("{}/{}#{} '{}' has no assignee.".format(self.org, self.repo_name, issue['issue_number'], issue_data['title']))
+                continue
+
+            for assignee in issue_data['assignees']:
+                user_issues_points.setdefault(assignee['login'], {})['points'] = user_issues_points.get(assignee['login'], {}).get('points', 0) + int(issue['estimate']['value'])
+                user_issues_points.setdefault(assignee['login'], {})['issues'] = user_issues_points[assignee['login']].get('issues', 0) + 1
+
+        return user_issues_points
+
+
+@click.group()
+def cli():
+    pass
 
 @click.command()
 @click.option('--repo', '-r', required=True, multiple=True, help="org/repo, can provide > 1")
@@ -220,7 +262,7 @@ class Amanuensis(object):
 @click.option('--zenhub_token', '-z', help="Your ZenHub token (optional, can place in config file).")
 @click.option('--force', '-f', is_flag=True, help="Even if the issues are attached to another milestone, move them.")
 @click.option('--dry-run', is_flag=True, help="Don't actually move any issues or create a milestone.")
-def cli(days, repo, token, zenhub_token, date, force, dry_run):
+def rollup(days, repo, token, zenhub_token, date, force, dry_run):
     try:
         # Get start and end date.
         end_date = datetime.datetime.strptime(date, '%Y-%m-%d')
@@ -241,7 +283,34 @@ def cli(days, repo, token, zenhub_token, date, force, dry_run):
             dry_run=dry_run,
             github_token=token,
             zenhub_token=zenhub_token)
-        amanuensis()
+        amanuensis.rollup_milestones()
+
+
+@click.command()
+@click.option('--repo', '-r', required=True, multiple=True, help="org/repo, can provide > 1")
+@click.option('--token', '-t', help="Your GitHub token (optional, can place in config file).")
+@click.option('--zenhub_token', '-z', help="Your ZenHub token (optional, can place in config file).")
+@click.option('--pipeline', '-p', default='Backlog')
+def assigned(repo, token, zenhub_token, pipeline):
+    """ I want to know how many points per user are in a given pipeline (usually Backlog).
+    Return a list of users and how many points they each have assigned to them. """
+
+    user_issues_points = {}
+
+    for org_repo in repo:
+        amanuensis = Amanuensis(org_repo,
+            github_token=token,
+            zenhub_token=zenhub_token)
+        amanuensis.get_user_points(user_issues_points, pipeline)
+
+    print("In {}".format(pipeline))
+    print("Issues\t\tPoints\t\t User")
+    for user, info in sorted(user_issues_points.items(), key=lambda x: x[1]['points'], reverse=True):
+        print("{}\t\t {}\t\t{}".format(info.get('issues', 0), info.get('points', 0), user))
+
+
+cli.add_command(rollup)
+cli.add_command(assigned)
 
 
 if __name__ == '__main__':

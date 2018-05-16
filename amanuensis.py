@@ -251,6 +251,22 @@ class Amanuensis(object):
 
         return user_issues_points
 
+    def get_pipeline_points(self, issues_points):
+        """ Take the passed dictionary, update with stats from this repo. """
+        board_data = self.get_zenhub_board_data()
+        for pipeline in board_data.get('pipelines', []):
+            if pipeline['name'] not in issues_points:
+                issues_points[pipeline['name']] = {'issues': 0, 'points': 0}
+
+            issues_points[pipeline['name']]['issues'] = issues_points[pipeline['name']]['issues'] + len(pipeline['issues'])
+
+            for issue in pipeline['issues']:
+                if 'estimate' not in issue:
+                    self.logger_method("{}/{}/{}/issues/{} in '{}' has no estimate.".format(GITHUB_HTTP_ROOT, self.org, self.repo_name, issue['issue_number'], pipeline['name']))
+                    continue
+                else:
+                    issues_points[pipeline['name']]['points'] = issues_points[pipeline['name']]['points'] + int(issue['estimate'].get('value', 0))
+
 
 @click.group()
 def cli():
@@ -322,8 +338,28 @@ def assigned(repo, token, zenhub_token, pipeline, sort):
         print("{}\t\t {}\t\t{}".format(info.get('issues', 0), info.get('points', 0), user))
 
 
+@click.command()
+@click.option('--repo', '-r', required=True, multiple=True, help="org/repo, can provide > 1")
+@click.option('--token', '-t', help="Your GitHub token (optional, can place in config file).")
+@click.option('--zenhub_token', '-z', help="Your ZenHub token (optional, can place in config file).")
+def pipelines(repo, token, zenhub_token):
+    """ I want to know how many issues and points I have in each pipeline. """
+    issues_points = {}
+
+    for org_repo in repo:
+        amanuensis = Amanuensis(org_repo,
+            github_token=token,
+            zenhub_token=zenhub_token)
+        amanuensis.get_pipeline_points(issues_points)
+
+    print("Issues\t\tPoints\t\tPipeline")
+    for pipeline, info in issues_points.items():
+        print("{}\t\t {}\t\t{}".format(info.get('issues', 0), info.get('points', 0), pipeline))
+
+
 cli.add_command(rollup)
 cli.add_command(assigned)
+cli.add_command(pipelines)
 
 
 if __name__ == '__main__':

@@ -3,6 +3,7 @@ import requests
 import datetime
 
 GITHUB_API_ROOT = 'https://api.github.com'
+GITHUB_HTTP_ROOT = 'https://github.com'
 CREDENTIALS_FILE = ".token"
 
 ZENHUB_CREDENTIALS_FILE = ".zenhubtoken"
@@ -235,17 +236,18 @@ class Amanuensis(object):
         for issue in issues:
             issue_data = self.get_github_issue_data(issue['issue_number'])
 
-            if 'estimate' not in issue:
-                self.logger_method("{}/{}#{} '{}' has no estimate.".format(self.org, self.repo_name, issue['issue_number'], issue_data['title']))
-                continue
-
             if not issue_data['assignees']:
-                self.logger_method("{}/{}#{} '{}' has no assignee.".format(self.org, self.repo_name, issue['issue_number'], issue_data['title']))
+                self.logger_method("{}/{}/{}/issues/{} '{}' has no assignee.".format(GITHUB_HTTP_ROOT, self.org, self.repo_name, issue['issue_number'], issue_data['title']))
                 continue
 
             for assignee in issue_data['assignees']:
-                user_issues_points.setdefault(assignee['login'], {})['points'] = user_issues_points.get(assignee['login'], {}).get('points', 0) + int(issue['estimate']['value'])
-                user_issues_points.setdefault(assignee['login'], {})['issues'] = user_issues_points[assignee['login']].get('issues', 0) + 1
+                user_issues_points.setdefault(assignee['login'], {})['issues'] = user_issues_points.get(assignee['login'], {}).get('issues', 0) + 1
+
+                if 'estimate' not in issue:
+                    self.logger_method("{}/{}/{}/issues/{} '{}' has no estimate.".format(GITHUB_HTTP_ROOT, self.org, self.repo_name, issue['issue_number'], issue_data['title']))
+                    continue
+                else:
+                    user_issues_points.setdefault(assignee['login'], {})['points'] = user_issues_points.get(assignee['login'], {}).get('points', 0) + int(issue['estimate']['value'])
 
         return user_issues_points
 
@@ -290,10 +292,20 @@ def rollup(days, repo, token, zenhub_token, date, force, dry_run):
 @click.option('--repo', '-r', required=True, multiple=True, help="org/repo, can provide > 1")
 @click.option('--token', '-t', help="Your GitHub token (optional, can place in config file).")
 @click.option('--zenhub_token', '-z', help="Your ZenHub token (optional, can place in config file).")
-@click.option('--pipeline', '-p', default='Backlog')
-def assigned(repo, token, zenhub_token, pipeline):
+@click.option('--pipeline', '-p', default='Backlog', help="Name of the pipeline you want stats for.")
+@click.option('--sort', '-s', default='points', help="Sort on points, issues, or user.")
+def assigned(repo, token, zenhub_token, pipeline, sort):
     """ I want to know how many points per user are in a given pipeline (usually Backlog).
     Return a list of users and how many points they each have assigned to them. """
+
+    sort_options = {
+        'points': lambda x: x[1].get('points', 0),
+        'issues': lambda x: x[1].get('issues', 0),
+        'user': lambda x: x[0],
+    }
+
+    if sort not in sort_options:
+        raise ValueError('Sort by must be one of the following: {}'.format(', '.join(sort_options.keys())))
 
     user_issues_points = {}
 
@@ -303,9 +315,10 @@ def assigned(repo, token, zenhub_token, pipeline):
             zenhub_token=zenhub_token)
         amanuensis.get_user_points(user_issues_points, pipeline)
 
+
     print("In {}".format(pipeline))
     print("Issues\t\tPoints\t\t User")
-    for user, info in sorted(user_issues_points.items(), key=lambda x: x[1]['points'], reverse=True):
+    for user, info in sorted(user_issues_points.items(), key=sort_options[sort]):
         print("{}\t\t {}\t\t{}".format(info.get('issues', 0), info.get('points', 0), user))
 
 

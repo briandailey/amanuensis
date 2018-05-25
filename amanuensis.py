@@ -1,6 +1,7 @@
 import click
 import requests
 import datetime
+from decimal import Decimal
 
 GITHUB_API_ROOT = 'https://api.github.com'
 GITHUB_HTTP_ROOT = 'https://github.com'
@@ -236,7 +237,7 @@ class Amanuensis(object):
         for issue in issues:
             issue_data = self.get_github_issue_data(issue['issue_number'])
 
-            if not issue_data['assignees']:
+            if 'assignees' not in issue_data or not issue_data['assignees']:
                 self.logger_method("{}/{}/{}/issues/{} '{}' has no assignee.".format(GITHUB_HTTP_ROOT, self.org, self.repo_name, issue['issue_number'], issue_data['title']))
                 continue
 
@@ -247,7 +248,7 @@ class Amanuensis(object):
                     self.logger_method("{}/{}/{}/issues/{} '{}' has no estimate.".format(GITHUB_HTTP_ROOT, self.org, self.repo_name, issue['issue_number'], issue_data['title']))
                     continue
                 else:
-                    user_issues_points.setdefault(assignee['login'], {})['points'] = user_issues_points.get(assignee['login'], {}).get('points', 0) + int(issue['estimate']['value'])
+                    user_issues_points.setdefault(assignee['login'], {})['points'] = user_issues_points.get(assignee['login'], {}).get('points', 0) + Decimal(issue['estimate']['value'])
 
         return user_issues_points
 

@@ -9,7 +9,7 @@ setup(name='amanuensis',
       license='MIT',
       packages=['.'],
       install_requires=[
-          'requests==2.18.4',
+          'requests==2.20.0',
           'click==6.7',
           'urllib3==1.22',
       ],

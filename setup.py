@@ -11,7 +11,7 @@ setup(name='amanuensis',
       install_requires=[
           'requests==2.18.4',
           'click==6.7',
-          'urllib3==1.22',
+          'urllib3==1.26.5',
       ],
       # scripts=['bin/amanuensis', ]
       entry_points={
